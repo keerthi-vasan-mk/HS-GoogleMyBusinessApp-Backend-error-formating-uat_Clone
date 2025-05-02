@@ -1,0 +1,43 @@
+version: '3.4'
+
+services:
+  ### Application Container #################################
+  application:
+    image: ${PROJECT}-server:${GIT_LOCAL_BRANCH}
+    container_name: ${PROJECT}-application
+    build:
+      context: ./
+      dockerfile: './Dockerfile.dev'
+    ports:
+      - '5000:5000'
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      - postgres
+    networks:
+      - backend
+
+  ### PostgreSQL Container ####################################
+  postgres:
+    container_name: ${PROJECT}-postgres
+    image: postgres:10
+    restart: unless-stopped
+    mem_limit: 512m
+    command: postgres -c max_connections=300 -c log_min_messages=LOG
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-freshworks}
+      - POSTGRES_USER=${POSTGRES_USER:-freshworks}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-Fresh!123}
+      - PGDATA=./database/postgresql/data/pgdata
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    networks:
+      - backend
+
+### Networks Setup ############################################
+networks:
+  backend:
+    driver: 'bridge'

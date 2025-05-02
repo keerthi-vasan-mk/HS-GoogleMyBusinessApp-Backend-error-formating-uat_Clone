@@ -1,0 +1,20 @@
+{
+  "type": "postgres",
+  "host": "googlemybusinessprod.cmohg3feirkb.ca-central-1.rds.amazonaws.com",
+  "port": 5432,
+  "username": "hootsuite",
+  "password": "cCkmMY4DVfBR8eA2",
+  "database": "googlemybusinessprod",
+  "synchronize": true,
+  "dropSchema": true,
+  "migrationsRun": false,
+  "logging": false,
+  "entities": ["dist/entity/**/*.js"],
+  "migrations": ["dist/migration/**/*.js"],
+  "subscribers": ["dist/subscriber/**/*.js"],
+  "cli": {
+    "entitiesDir": "src/entity",
+    "migrationsDir": "src/migration",
+    "subscribersDir": "src/subscriber"
+  }
+}

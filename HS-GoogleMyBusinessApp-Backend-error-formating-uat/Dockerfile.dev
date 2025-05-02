@@ -1,0 +1,14 @@
+FROM node:12
+
+ENV PATH $PATH:/usr/src/app/node_modules/.bin
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+
+# Install dependencies
+RUN npm set progress=false && npm ci --no-cache
+
+EXPOSE 5001
+
+CMD [ "sh", "-c", "echo $(date) && npm run start:dev" ]

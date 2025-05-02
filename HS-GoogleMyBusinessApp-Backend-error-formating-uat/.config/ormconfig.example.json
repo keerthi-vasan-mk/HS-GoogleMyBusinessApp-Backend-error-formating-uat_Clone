@@ -1,0 +1,25 @@
+{
+    "type": "postgres",
+    "host": "hootsuite-gmb-api-development_postgres",
+    "port": 5432,
+    "username": "freshworks",
+    "password": "",
+    "database": "hootsuite-gmb",
+    "synchronize": true,
+    "migrationsRun": false,
+    "logging": false,
+    "entities": [
+        "dist/entity/**/*.js"
+    ],
+    "migrations": [
+        "dist/migration/**/*.js"
+    ],
+    "subscribers": [
+        "dist/subscriber/**/*.js"
+    ],
+    "cli": {
+        "entitiesDir": "src/entity",
+        "migrationsDir": "src/migration",
+        "subscribersDir": "src/subscriber"
+    }
+}

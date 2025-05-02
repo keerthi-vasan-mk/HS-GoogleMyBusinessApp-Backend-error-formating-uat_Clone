@@ -1,0 +1,20 @@
+{
+  "type": "postgres",
+  "host": "google-mybusiness-development.cmohg3feirkb.ca-central-1.rds.amazonaws.com",
+  "port": 5432,
+  "username": "postgres",
+  "password": "admin123$",
+  "database": "mybusinessdevelopment",
+  "synchronize": true,
+  "dropSchema": true,
+  "migrationsRun": false,
+  "logging": false,
+  "entities": ["dist/entity/**/*.js"],
+  "migrations": ["dist/migration/**/*.js"],
+  "subscribers": ["dist/subscriber/**/*.js"],
+  "cli": {
+    "entitiesDir": "src/entity",
+    "migrationsDir": "src/migration",
+    "subscribersDir": "src/subscriber"
+  }
+}

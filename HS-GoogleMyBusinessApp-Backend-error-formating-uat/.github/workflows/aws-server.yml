@@ -1,0 +1,95 @@
+# This workflow will build and push a new container image to Amazon ECR,
+# and then will deploy a new task definition to Amazon ECS, when a release is created
+
+on:
+  push:
+    branches: [main, develop]
+
+name: Deploy to Amazon EBS
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set AWS_ENV variable
+        run: |
+          if [ $GITHUB_REF = 'refs/heads/main' ]
+          then
+            echo '::set-output name=AWS_ENV::prod'
+          else
+            echo '::set-output name=AWS_ENV::stg'
+          fi
+        id: AWS_ENV
+
+      - name: Prepare env variables
+        run: |
+          cp .config/ormconfig.example.json ormconfig.json
+          cp .config/Dockerrun.example.json Dockerrun.aws.json
+          #cp .config/logs-${{ steps.AWS_ENV.outputs.AWS_ENV }}.config .ebextensions/logs.config
+
+      - name: DB creds substitution
+        uses: microsoft/variable-substitution@v1
+        with:
+          files: "ormconfig.json"
+        env:
+          host: ${{ secrets[format('DB_HOST_{0}', steps.AWS_ENV.outputs.AWS_ENV)] }}
+          password: ${{ secrets[format('DB_PASSWORD_{0}', steps.AWS_ENV.outputs.AWS_ENV)] }}
+          database: ${{ secrets[format('DB_NAME_{0}', steps.AWS_ENV.outputs.AWS_ENV)] }}
+          username: ${{ secrets[format('DB_USER_{0}', steps.AWS_ENV.outputs.AWS_ENV)] }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets[format('AWS_ACCESS_KEY_ID_{0}', steps.AWS_ENV.outputs.AWS_ENV)] }}
+          aws-secret-access-key: ${{ secrets[format('AWS_SECRET_ACCESS_KEY_{0}', steps.AWS_ENV.outputs.AWS_ENV)] }}
+          aws-region: ca-central-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets[format('ECR_REPO_{0}', steps.AWS_ENV.outputs.AWS_ENV)] }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Build a docker container and
+          # push it to ECR so that it can
+          # be deployed to ECS.
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      - name: Fill in the new image ID in Amazon EBS
+        uses: microsoft/variable-substitution@v1
+        with:
+          files: "Dockerrun.aws.json"
+        env:
+          Image.Name: ${{ steps.build-image.outputs.image }}
+
+      - name: Decrypt options.config
+        run: |
+          gpg --quiet --batch --yes --decrypt --passphrase="${{ secrets[format('PASSPHRASE_{0}', steps.AWS_ENV.outputs.AWS_ENV)] }}" \
+          --output .ebextensions/options.config .ebextensions/options-${{ steps.AWS_ENV.outputs.AWS_ENV }}.config.gpg
+
+      - name: Generate deployment package
+        run: zip -r ${{ github.sha }}.zip .ebextensions Dockerrun.aws.json
+
+      - name: Deploy to EB
+        uses: einaregilsson/beanstalk-deploy@v18
+        with:
+          aws_access_key: ${{ secrets[format('AWS_ACCESS_KEY_ID_{0}', steps.AWS_ENV.outputs.AWS_ENV)] }}
+          aws_secret_key: ${{ secrets[format('AWS_SECRET_ACCESS_KEY_{0}', steps.AWS_ENV.outputs.AWS_ENV)] }}
+          application_name: ${{ secrets[format('APP_NAME_{0}', steps.AWS_ENV.outputs.AWS_ENV)] }}
+          environment_name: ${{ secrets[format('ENV_NAME_{0}', steps.AWS_ENV.outputs.AWS_ENV)] }}
+          version_label: ${{ github.sha }}
+          region: ca-central-1
+          deployment_package: ${{ github.sha }}.zip
+          wait_for_deployment: true

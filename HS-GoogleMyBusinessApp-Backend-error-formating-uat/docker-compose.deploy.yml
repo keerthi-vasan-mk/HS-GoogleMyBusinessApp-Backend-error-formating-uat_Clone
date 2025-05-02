@@ -1,0 +1,12 @@
+version: '3.4'
+
+services:
+  ### Application Container #################################
+  application:
+    image: ${PROJECT}_codebase:${TAG}
+    container_name: ${PROJECT}_codebase
+    build:
+      context: ./
+      dockerfile: './Dockerfile'
+    expose:
+      - '5000'
