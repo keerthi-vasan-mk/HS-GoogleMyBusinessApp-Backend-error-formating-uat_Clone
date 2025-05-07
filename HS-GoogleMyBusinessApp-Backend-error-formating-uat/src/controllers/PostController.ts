@@ -57,6 +57,7 @@ import axios from 'axios';
 import { GMBLocalPostEventValidation, GMBLocalPostOfferValidation } from '../services/GMBValidation';
 import { LoggerService } from '../utils/LoggerService';
 import { Request } from 'express';
+import { LogExecutionTime } from '../middleware/decorator/LogExecutionTime';
 
 /**
  * Posts Endpoint
@@ -164,6 +165,7 @@ export class PostController {
   @Get('/posts')
   @UseBefore(StreamMiddleware)
   @UseBefore(AuthMiddleware)
+  @LogExecutionTime()
   async getPosts(
     @Req() req: Request,
     @Body() postsRequest: GetPostsRequest,
