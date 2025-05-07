@@ -6,11 +6,11 @@ export function LogExecutionTime() {
       propertyKey: string,
       descriptor: PropertyDescriptor
     ) {
-      const originalMethod = descriptor.value;
+      const wrappedMethod = descriptor.value;
   
       descriptor.value = async function (...args: any[]) {
         const start = process.hrtime();
-        const result = await originalMethod.apply(this, args);
+        const result = await wrappedMethod.apply(this, args);
         const diff = process.hrtime(start);
         const durationMs = (diff[0] * 1e9 + diff[1]) / 1e6;
         const req: Request = args.find((arg) => arg?.headers && arg?.method);          
